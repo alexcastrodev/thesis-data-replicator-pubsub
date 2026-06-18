@@ -11,3 +11,9 @@ Ao contrário do broker, eu não uso Kafka ou RabbitMQ, mas sim o Pub/Sub nativo
 - [ ] Replicação de exclusão de dados
 - [ ] Quando um dos bancos tem dependências, como chaves estrangeiras, o que fazer?
 - [ ] Um dos bancos está offline, como lidar com isso? E quando voltar online, como sincronizar os dados?
+
+
+# Referências
+
+[Linhas orfãs e chaves estrangeiras quebradas no PostgreSQL](https://www.cybertec-postgresql.com/en/broken-foreign-keys-postgresql/)
+
