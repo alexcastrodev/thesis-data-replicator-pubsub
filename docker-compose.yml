@@ -1,0 +1,68 @@
+# Local replication topology — native PostgreSQL logical replication.
+#
+#   db0  -> source of truth (France). Publisher: owns CREATE PUBLICATION app_pub.
+#   db1  -> Portugal replica. Subscriber: CREATE SUBSCRIPTION ... PUBLICATION app_pub.
+#   db2  -> Spain replica.    Subscriber.
+#   db3  -> Portugal replica. Subscriber.
+#
+# Each Postgres is a separate physical instance, so the PoC genuinely propagates
+# rows node-to-node over Postgres' own logical-replication protocol — no broker,
+# no application-level producer/consumer. The publisher streams committed changes
+# on the published tables (tenants, manufacturers) straight to each subscriber.
+#
+# db0 runs with wal_level=logical (required to decode WAL into logical changes).
+# The subscribers need only the default wal_level, but inherit the same flag here
+# for simplicity. The replica/subscription wiring is done by `replication:setup`.
+name: replicateable-tables
+
+x-db: &db
+  image: timescale/timescaledb:2.24.0-pg18
+  environment:
+    - POSTGRES_PASSWORD=dev
+  healthcheck:
+    test: ["CMD", "pg_isready", "-U", "postgres"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+services:
+  # Publisher. wal_level=logical is the one setting native logical replication
+  # requires on the source; the defaults for max_wal_senders / max_replication_slots
+  # are sufficient for three subscribers.
+  db0:
+    <<: *db
+    command: ["-c", "wal_level=logical"]
+    ports:
+      - "5440:5432"
+    volumes:
+      - db0:/var/lib/postgresql
+
+  db1:
+    <<: *db
+    command: ["-c", "wal_level=logical"]
+    ports:
+      - "5433:5432"
+    volumes:
+      - db1:/var/lib/postgresql
+
+  db2:
+    <<: *db
+    command: ["-c", "wal_level=logical"]
+    ports:
+      - "5434:5432"
+    volumes:
+      - db2:/var/lib/postgresql
+
+  db3:
+    <<: *db
+    command: ["-c", "wal_level=logical"]
+    ports:
+      - "5435:5432"
+    volumes:
+      - db3:/var/lib/postgresql
+
+volumes:
+  db0:
+  db1:
+  db2:
+  db3:

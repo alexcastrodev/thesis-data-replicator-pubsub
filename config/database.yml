@@ -1,0 +1,101 @@
+# PostgreSQL, one physical instance per node in the replication topology.
+#
+#   primary (default) = DB0 -> source of truth / publisher for the public tables
+#   db1, db2, db3           -> regional replicas (subscribers) of the public tables
+#
+# A single Rails process connects to all four (see ApplicationRecord.connects_to).
+# The source writes on :default. Replicas are populated by PostgreSQL logical
+# replication (CREATE SUBSCRIPTION), NOT by this process — the app only reads them
+# (e.g. to verify convergence) via ConnectionSwitcher.switch_shard(<shard>).
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: <%= ENV.fetch("POSTGRES_USER", "postgres") %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD", "dev") %>
+
+# On the host each node is localhost on a distinct port; inside docker-compose
+# each is a service hostname on the internal 5432. Override per connection.
+<% db0_host = ENV.fetch("DB0_HOST", "localhost") %>
+<% db1_host = ENV.fetch("DB1_HOST", "localhost") %>
+<% db2_host = ENV.fetch("DB2_HOST", "localhost") %>
+<% db3_host = ENV.fetch("DB3_HOST", "localhost") %>
+<% db0_port = ENV.fetch("DB0_PORT", "5440") %>
+<% db1_port = ENV.fetch("DB1_PORT", "5433") %>
+<% db2_port = ENV.fetch("DB2_PORT", "5434") %>
+<% db3_port = ENV.fetch("DB3_PORT", "5435") %>
+
+development:
+  primary:
+    <<: *default
+    database: replicateable_db0_development
+    host: <%= db0_host %>
+    port: <%= db0_port %>
+  db1:
+    <<: *default
+    database: replicateable_db1_development
+    host: <%= db1_host %>
+    port: <%= db1_port %>
+    migrations_paths: db/migrate
+  db2:
+    <<: *default
+    database: replicateable_db2_development
+    host: <%= db2_host %>
+    port: <%= db2_port %>
+    migrations_paths: db/migrate
+  db3:
+    <<: *default
+    database: replicateable_db3_development
+    host: <%= db3_host %>
+    port: <%= db3_port %>
+    migrations_paths: db/migrate
+
+# In test the four connections share one physical database (no live replication
+# stream); the single-writer guard is still exercised because switch_shard
+# changes the active shard. Only :default owns schema.
+test:
+  primary:
+    <<: *default
+    database: replicateable_test<%= ENV["TEST_ENV_NUMBER"] %>
+    host: <%= db0_host %>
+    port: <%= db0_port %>
+  db1:
+    <<: *default
+    database: replicateable_test<%= ENV["TEST_ENV_NUMBER"] %>
+    host: <%= db0_host %>
+    port: <%= db0_port %>
+    database_tasks: false
+  db2:
+    <<: *default
+    database: replicateable_test<%= ENV["TEST_ENV_NUMBER"] %>
+    host: <%= db0_host %>
+    port: <%= db0_port %>
+    database_tasks: false
+  db3:
+    <<: *default
+    database: replicateable_test<%= ENV["TEST_ENV_NUMBER"] %>
+    host: <%= db0_host %>
+    port: <%= db0_port %>
+    database_tasks: false
+
+production:
+  primary:
+    <<: *default
+    database: replicateable_db0_production
+    host: <%= db0_host %>
+    port: <%= db0_port %>
+  db1:
+    <<: *default
+    database: replicateable_db1_production
+    host: <%= db1_host %>
+    port: <%= db1_port %>
+  db2:
+    <<: *default
+    database: replicateable_db2_production
+    host: <%= db2_host %>
+    port: <%= db2_port %>
+  db3:
+    <<: *default
+    database: replicateable_db3_production
+    host: <%= db3_host %>
+    port: <%= db3_port %>
