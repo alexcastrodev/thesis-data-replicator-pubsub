@@ -13,7 +13,14 @@ Ao contrário do broker, eu não uso Kafka ou RabbitMQ, mas sim o Pub/Sub nativo
 - [ ] Um dos bancos está offline, como lidar com isso? E quando voltar online, como sincronizar os dados?
 
 
-# Referências
+## Referências
+
+["O processo de aplicação no banco de dados subscriber sempre é executado com session_replication_role definido como replica. Isso significa que, por padrão, triggers e rules não serão disparados em um subscriber."](https://www.postgresql.org/docs/current/logical-replication-architecture.html)
+
+
+["Como as chaves estrangeiras são implementadas como triggers, definir session_replication_role como replica também desabilita todas as verificações de chaves estrangeiras... As restrições de chave estrangeira não são aplicadas no processo de replicação — o que for bem-sucedido no lado do provedor será aplicado ao subscriber, mesmo que a FOREIGN KEY fosse violada."](https://www.postgresql.org/docs/current/logical-replication-architecture.html)
+
 
 [Linhas orfãs e chaves estrangeiras quebradas no PostgreSQL](https://www.cybertec-postgresql.com/en/broken-foreign-keys-postgresql/)
+
 
